@@ -1,0 +1,16 @@
+{
+  "identifier": "com.tsp-template.game",
+  "productName": "tsp-template",
+  "version": "0.1.0",
+  "build": {
+    "beforeDevCommand": "bun run dev",
+    "beforeBuildCommand": "bun run build",
+    "devUrl": "http://localhost:1420",
+    "frontendDist": "../dist"
+  },
+  "bundle": {
+    "active": true,
+    "targets": "all",
+    "icon": ["icons/icon.ico"]
+  }
+}

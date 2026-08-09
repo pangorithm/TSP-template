@@ -1,0 +1,5 @@
+{
+  "identifier": "default",
+  "description": "Default core permission — allows the app window to display.",
+  "permissions": ["core:default"]
+}
