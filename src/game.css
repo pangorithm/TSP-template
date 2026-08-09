@@ -1,0 +1,19 @@
+html,
+body,
+#root {
+  width: 100%;
+  min-height: 100%;
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
+}
+
+#game-container {
+  width: 100%;
+  height: 100%;
+  touch-action: none;
+}
+
+#game-container canvas {
+  display: block;
+}
