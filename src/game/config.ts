@@ -11,10 +11,10 @@ export function createGame(
   parent: HTMLElement,
   options: GameFactoryOptions = {},
 ): Phaser.Game {
+  const DEFAULT_BACKGROUND = "#000000" as const;
+
   const optionalConfig = {
-    ...(options.backgroundColor === undefined
-      ? {}
-      : { backgroundColor: options.backgroundColor }),
+    backgroundColor: options.backgroundColor ?? DEFAULT_BACKGROUND,
     ...(options.banner === undefined ? {} : { banner: options.banner }),
     ...(options.fps === undefined ? {} : { fps: options.fps }),
     ...(options.render === undefined ? {} : { render: options.render }),

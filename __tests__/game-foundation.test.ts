@@ -115,16 +115,18 @@ describe("Phaser foundation", () => {
     expect(config).not.toHaveProperty("disableVisibilityChange");
   });
 
-  it("omits unset optional configuration from the Phaser constructor", () => {
+  it("supplies a black default background and omits other unset optional configuration", () => {
     // Given: a factory call without optional presentation settings
     const host = document.createElement("div");
 
     // When: the game is created with its default configuration
     createGame(host);
 
-    // Then: Phaser receives only concrete optional values
+    // Then: Phaser receives the default black canvas background
     const config = mocks.game.mock.calls.at(-1)?.[0];
-    expect(config).not.toHaveProperty("backgroundColor");
+    expect(config).toHaveProperty("backgroundColor", "#000000");
+
+    // Then: other unset optional values remain absent
     expect(config).not.toHaveProperty("banner");
     expect(config).not.toHaveProperty("fps");
     expect(config).not.toHaveProperty("render");
