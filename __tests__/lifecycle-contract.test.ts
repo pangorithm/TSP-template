@@ -5,7 +5,7 @@ let documentHasFocus = true;
 
 type LifecycleModule = {
   readonly installGameLifecycle: (callbacks: {
-    readonly pause: () => void;
+    readonly pause: () => boolean;
     readonly resume: () => void;
   }) => () => void;
 };
@@ -42,7 +42,7 @@ describe("game lifecycle", () => {
     if (!isLifecycleModule(lifecycleCandidate)) {
       return;
     }
-    const pause = vi.fn();
+    const pause = vi.fn(() => true);
     const resume = vi.fn();
     const teardown = lifecycleCandidate.installGameLifecycle({ pause, resume });
     Object.defineProperty(document, "visibilityState", {
@@ -65,7 +65,7 @@ describe("game lifecycle", () => {
     if (!isLifecycleModule(lifecycleCandidate)) {
       return;
     }
-    const pause = vi.fn();
+    const pause = vi.fn(() => true);
     const resume = vi.fn();
     const teardown = lifecycleCandidate.installGameLifecycle({ pause, resume });
     Object.defineProperty(document, "visibilityState", {
@@ -97,7 +97,7 @@ describe("game lifecycle", () => {
     if (!isLifecycleModule(lifecycleCandidate)) {
       return;
     }
-    const pause = vi.fn();
+    const pause = vi.fn(() => true);
     const resume = vi.fn();
     const teardown = lifecycleCandidate.installGameLifecycle({ pause, resume });
 
@@ -116,7 +116,7 @@ describe("game lifecycle", () => {
     if (!isLifecycleModule(lifecycleCandidate)) {
       return;
     }
-    const pause = vi.fn();
+    const pause = vi.fn(() => true);
     const resume = vi.fn();
     const teardown = lifecycleCandidate.installGameLifecycle({ pause, resume });
 
@@ -135,7 +135,7 @@ describe("game lifecycle", () => {
     if (!isLifecycleModule(lifecycleCandidate)) {
       return;
     }
-    const pause = vi.fn();
+    const pause = vi.fn(() => true);
     const resume = vi.fn();
     const teardown = lifecycleCandidate.installGameLifecycle({ pause, resume });
 
@@ -155,7 +155,7 @@ describe("game lifecycle", () => {
     if (!isLifecycleModule(lifecycleCandidate)) {
       return;
     }
-    const pause = vi.fn();
+    const pause = vi.fn(() => true);
     const resume = vi.fn();
     const teardown = lifecycleCandidate.installGameLifecycle({ pause, resume });
     window.dispatchEvent(new Event("blur"));
@@ -194,7 +194,7 @@ describe("game lifecycle", () => {
     if (!isLifecycleModule(lifecycleCandidate)) {
       return;
     }
-    const pause = vi.fn();
+    const pause = vi.fn(() => true);
     const resume = vi.fn();
 
     // When: lifecycle ownership is installed
@@ -214,7 +214,7 @@ describe("game lifecycle", () => {
     if (!isLifecycleModule(lifecycleCandidate)) {
       return;
     }
-    const pause = vi.fn();
+    const pause = vi.fn(() => true);
     const resume = vi.fn();
 
     // When: lifecycle ownership is installed
@@ -233,7 +233,7 @@ describe("game lifecycle", () => {
     if (!isLifecycleModule(lifecycleCandidate)) {
       return;
     }
-    const pause = vi.fn();
+    const pause = vi.fn(() => true);
     const resume = vi.fn();
     const teardown = lifecycleCandidate.installGameLifecycle({ pause, resume });
     window.dispatchEvent(new Event("blur"));
@@ -255,7 +255,7 @@ describe("game lifecycle", () => {
     if (!isLifecycleModule(lifecycleCandidate)) {
       return;
     }
-    const pause = vi.fn();
+    const pause = vi.fn(() => true);
     const resume = vi.fn();
     const teardown = lifecycleCandidate.installGameLifecycle({ pause, resume });
     teardown();
@@ -271,5 +271,26 @@ describe("game lifecycle", () => {
     // Then: no orphaned listener pauses the game
     expect(pause).not.toHaveBeenCalled();
     expect(resume).not.toHaveBeenCalled();
+  });
+
+  it("does not resume after an externally paused game rejects lifecycle ownership", async () => {
+    // Given: an externally paused game whose lifecycle pause cannot acquire ownership
+    const lifecycleCandidate: unknown = await import(lifecycleModulePath);
+    expect(isLifecycleModule(lifecycleCandidate)).toBe(true);
+    if (!isLifecycleModule(lifecycleCandidate)) {
+      return;
+    }
+    const pause = vi.fn(() => false);
+    const resume = vi.fn();
+    const teardown = lifecycleCandidate.installGameLifecycle({ pause, resume });
+
+    // When: focus is lost and subsequently restored
+    window.dispatchEvent(new Event("blur"));
+    window.dispatchEvent(new Event("focus"));
+
+    // Then: lifecycle preserves the external pause
+    expect(pause).toHaveBeenCalledTimes(1);
+    expect(resume).not.toHaveBeenCalled();
+    teardown();
   });
 });

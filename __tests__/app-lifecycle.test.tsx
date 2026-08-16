@@ -9,6 +9,12 @@ import { createGame } from "../src/game/config";
 /*  Phaser mock — captures Game constructor + destroy() calls          */
 /* ------------------------------------------------------------------ */
 const mockDestroy = vi.fn();
+type MockLoop = {
+  running: boolean;
+  readonly sleep: () => void;
+  readonly wake: () => void;
+};
+const mockLoops: MockLoop[] = [];
 
 vi.mock("phaser", () => {
   class MockScene {
@@ -21,18 +27,26 @@ vi.mock("phaser", () => {
     }
   }
 
-  const mockSleep = vi.fn();
-  const mockWake = vi.fn();
   const MockGame = vi.fn(function (
     this: {
       destroy: typeof mockDestroy;
-      loop: { readonly sleep: typeof mockSleep; readonly wake: typeof mockWake };
+      loop: MockLoop;
     },
     _config?: unknown,
   ) {
     void _config;
+    const loop: MockLoop = {
+      running: true,
+      sleep: vi.fn(() => {
+        loop.running = false;
+      }),
+      wake: vi.fn(() => {
+        loop.running = true;
+      }),
+    };
     this.destroy = mockDestroy;
-    this.loop = { sleep: mockSleep, wake: mockWake };
+    this.loop = loop;
+    mockLoops.push(loop);
   });
 
   return {
@@ -56,6 +70,7 @@ const MockGame = vi.mocked(Phaser.Game);
 describe("App Phaser lifecycle", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockLoops.length = 0;
   });
 
   it("creates Phaser game on mount with responsive config", () => {
@@ -95,6 +110,49 @@ describe("App Phaser lifecycle", () => {
     const { unmount } = render(() => <App />);
     unmount();
     expect(mockDestroy).toHaveBeenCalledTimes(1);
+  });
+
+  it("sleeps and wakes a running Phaser loop across blur and focus", () => {
+    // Given: a mounted game with a running Phaser loop
+    const { unmount } = render(() => <App />);
+    const loop = mockLoops[0];
+    expect(loop).toBeDefined();
+    if (loop === undefined) {
+      unmount();
+      return;
+    }
+
+    // When: the window loses and then regains focus
+    window.dispatchEvent(new Event("blur"));
+    window.dispatchEvent(new Event("focus"));
+
+    // Then: App acquires lifecycle ownership and restores the loop
+    expect(loop.sleep).toHaveBeenCalledTimes(1);
+    expect(loop.wake).toHaveBeenCalledTimes(1);
+    expect(loop.running).toBe(true);
+    unmount();
+  });
+
+  it("preserves an externally stopped Phaser loop across blur and focus", () => {
+    // Given: a mounted game whose Phaser loop was already stopped externally
+    const { unmount } = render(() => <App />);
+    const loop = mockLoops[0];
+    expect(loop).toBeDefined();
+    if (loop === undefined) {
+      unmount();
+      return;
+    }
+    loop.running = false;
+
+    // When: the window loses and then regains focus
+    window.dispatchEvent(new Event("blur"));
+    window.dispatchEvent(new Event("focus"));
+
+    // Then: App does not claim ownership or wake the external stop
+    expect(loop.sleep).not.toHaveBeenCalled();
+    expect(loop.wake).not.toHaveBeenCalled();
+    expect(loop.running).toBe(false);
+    unmount();
   });
 });
 

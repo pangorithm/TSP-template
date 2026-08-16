@@ -15,7 +15,14 @@ export function App() {
 
     game = createGame(container);
     removeLifecycle = installGameLifecycle({
-      pause: () => game?.loop.sleep(),
+      pause: () => {
+        if (game === undefined || !game.loop.running) {
+          return false;
+        }
+
+        game.loop.sleep();
+        return true;
+      },
       resume: () => game?.loop.wake(),
     });
   });

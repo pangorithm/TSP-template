@@ -1,5 +1,5 @@
 export type GameLifecycleCallbacks = {
-  readonly pause: () => void;
+  readonly pause: () => boolean;
   readonly resume: () => void;
 };
 
@@ -13,8 +13,7 @@ export function installGameLifecycle(callbacks: GameLifecycleCallbacks): () => v
       return;
     }
 
-    pausedByLifecycle = true;
-    callbacks.pause();
+    pausedByLifecycle = callbacks.pause();
   };
 
   const resume = (): void => {
