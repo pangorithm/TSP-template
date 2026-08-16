@@ -99,6 +99,66 @@ describe("Phaser foundation", () => {
     );
   });
 
+  it("does not send unsupported visibility configuration to Phaser", () => {
+    // Given: a host element for the game canvas
+    const host = document.createElement("div");
+
+    // When: the factory creates Phaser
+    createGame(host);
+    const config = mocks.game.mock.calls.at(-1)?.[0];
+
+    // Then: the native Phaser configuration has no unsupported visibility field
+    expect(config).toBeDefined();
+    if (config === undefined) {
+      return;
+    }
+    expect(config).not.toHaveProperty("disableVisibilityChange");
+  });
+
+  it("omits unset optional configuration from the Phaser constructor", () => {
+    // Given: a factory call without optional presentation settings
+    const host = document.createElement("div");
+
+    // When: the game is created with its default configuration
+    createGame(host);
+
+    // Then: Phaser receives only concrete optional values
+    const config = mocks.game.mock.calls.at(-1)?.[0];
+    expect(config).not.toHaveProperty("backgroundColor");
+    expect(config).not.toHaveProperty("banner");
+    expect(config).not.toHaveProperty("fps");
+    expect(config).not.toHaveProperty("render");
+  });
+
+  it("allows only optional presentation and render settings around its protected config", () => {
+    // Given: factory settings that do not own the host, sizing, scale, or scenes
+    const host = document.createElement("div");
+    const render = { pixelArt: true };
+    const fps = { target: 30 };
+
+    // When: the factory receives its supported optional settings
+    createGame(host, {
+      backgroundColor: "#102030",
+      banner: false,
+      fps,
+      render,
+    });
+
+    // Then: it preserves them while retaining the foundation-owned configuration
+    expect(mocks.game).toHaveBeenLastCalledWith({
+      type: 0,
+      width: "100%",
+      height: "100%",
+      parent: host,
+      scale: { mode: 1, autoCenter: 2 },
+      scene: [BootScene, expect.any(Function)],
+      backgroundColor: "#102030",
+      banner: false,
+      fps,
+      render,
+    });
+  });
+
   it("registers BootScene and GameScene in startup order", async () => {
     // Given: the generic game scene contract
     const gameSceneCandidate: unknown = await import(gameSceneModulePath);
