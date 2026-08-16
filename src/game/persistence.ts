@@ -1,5 +1,6 @@
 export type StoragePort = {
   readonly getItem: (key: string) => string | null;
+  readonly removeItem: (key: string) => void;
   readonly setItem: (key: string, value: string) => void;
 };
 
@@ -16,6 +17,7 @@ export type PersistenceOptions<T> = {
 };
 
 export type Persistence<T> = {
+  readonly clear: () => void;
   readonly load: () => T;
   readonly save: (value: T) => void;
 };
@@ -33,6 +35,9 @@ function decodeJson<T>(serialized: string): T | undefined {
 
 export function createPersistence<T>(options: PersistenceOptions<T>): Persistence<T> {
   return {
+    clear: () => {
+      options.storage.removeItem(options.key);
+    },
     load: () => {
       const serialized = options.storage.getItem(options.key);
       if (serialized === null) {
