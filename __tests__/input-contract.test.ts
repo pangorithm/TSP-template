@@ -8,20 +8,37 @@ type ActionInput = {
   readonly actionForTouch: () => string;
 };
 
+type ActionEvent = {
+  readonly action: string;
+  readonly source: "keyboard" | "pointer" | "touch";
+};
+
+type ActionDispatcher = {
+  readonly dispatchKeyboard: (code: string) => void;
+  readonly dispatchPointer: () => void;
+  readonly dispatchTouch: () => void;
+};
+
 type InputModule = {
   readonly createActionInput: (bindings: {
     readonly keyboard: Readonly<Record<string, string>>;
     readonly pointer: string;
     readonly touch: string;
   }) => ActionInput;
+  readonly createActionDispatcher: (
+    input: ActionInput,
+    dispatch: (event: ActionEvent) => void,
+  ) => ActionDispatcher;
 };
 
 function isInputModule(value: unknown): value is InputModule {
   return (
     typeof value === "object" &&
     value !== null &&
-    "createActionInput" in value &&
-    typeof value.createActionInput === "function"
+      "createActionInput" in value &&
+      typeof value.createActionInput === "function" &&
+      "createActionDispatcher" in value &&
+      typeof value.createActionDispatcher === "function"
   );
 }
 
@@ -104,5 +121,101 @@ describe("generic action input", () => {
 
     // Then: touch input preserves its configured action
     expect(touchAction).toBe("activate");
+  });
+
+  it("dispatches configured actions with their physical source", async () => {
+    // Given: generic mappings and an action event collector
+    const inputCandidate: unknown = await import(inputModulePath);
+    expect(isInputModule(inputCandidate)).toBe(true);
+    if (!isInputModule(inputCandidate)) {
+      return;
+    }
+    const events: ActionEvent[] = [];
+    const input = inputCandidate.createActionInput({
+      keyboard: { KeyF: "interact" },
+      pointer: "select",
+      touch: "activate",
+    });
+    const dispatcher = inputCandidate.createActionDispatcher(input, (event) => {
+      events.push(event);
+    });
+
+    // When: configured keyboard input is dispatched
+    dispatcher.dispatchKeyboard("KeyF");
+
+    // Then: one action event retains the action and physical source
+    expect(events).toEqual([{ action: "interact", source: "keyboard" }]);
+  });
+
+  it("does not dispatch an action for an unmapped keyboard code", async () => {
+    // Given: a dispatcher with a single keyboard mapping
+    const inputCandidate: unknown = await import(inputModulePath);
+    expect(isInputModule(inputCandidate)).toBe(true);
+    if (!isInputModule(inputCandidate)) {
+      return;
+    }
+    const events: ActionEvent[] = [];
+    const input = inputCandidate.createActionInput({
+      keyboard: { KeyF: "interact" },
+      pointer: "select",
+      touch: "activate",
+    });
+    const dispatcher = inputCandidate.createActionDispatcher(input, (event) => {
+      events.push(event);
+    });
+
+    // When: an unmapped keyboard code is dispatched
+    dispatcher.dispatchKeyboard("KeyX");
+
+    // Then: no action event is sent
+    expect(events).toEqual([]);
+  });
+
+  it("dispatches the configured pointer action with a pointer source", async () => {
+    // Given: a dispatcher with a configured pointer action
+    const inputCandidate: unknown = await import(inputModulePath);
+    expect(isInputModule(inputCandidate)).toBe(true);
+    if (!isInputModule(inputCandidate)) {
+      return;
+    }
+    const events: ActionEvent[] = [];
+    const input = inputCandidate.createActionInput({
+      keyboard: {},
+      pointer: "select",
+      touch: "activate",
+    });
+    const dispatcher = inputCandidate.createActionDispatcher(input, (event) => {
+      events.push(event);
+    });
+
+    // When: pointer input is dispatched
+    dispatcher.dispatchPointer();
+
+    // Then: the event identifies the configured action and pointer source
+    expect(events).toEqual([{ action: "select", source: "pointer" }]);
+  });
+
+  it("dispatches the configured touch action with a touch source", async () => {
+    // Given: a dispatcher with a configured touch action
+    const inputCandidate: unknown = await import(inputModulePath);
+    expect(isInputModule(inputCandidate)).toBe(true);
+    if (!isInputModule(inputCandidate)) {
+      return;
+    }
+    const events: ActionEvent[] = [];
+    const input = inputCandidate.createActionInput({
+      keyboard: {},
+      pointer: "select",
+      touch: "activate",
+    });
+    const dispatcher = inputCandidate.createActionDispatcher(input, (event) => {
+      events.push(event);
+    });
+
+    // When: touch input is dispatched
+    dispatcher.dispatchTouch();
+
+    // Then: the event identifies the configured action and touch source
+    expect(events).toEqual([{ action: "activate", source: "touch" }]);
   });
 });
