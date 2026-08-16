@@ -8,6 +8,16 @@
     "devUrl": "http://localhost:1420",
     "frontendDist": "../dist"
   },
+  "app": {
+    "windows": [
+      {
+        "label": "main",
+        "title": "TSP Template",
+        "width": 1280,
+        "height": 720
+      }
+    ]
+  },
   "bundle": {
     "active": true,
     "targets": "all",

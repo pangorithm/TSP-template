@@ -1,35 +1,57 @@
 //! TSP-template library — constructs and runs the Tauri v2 application.
-//!
-//! Test boundary note: Tauri's `Builder::default().build(generate_context!())`
-//! is a bootstrap seam that cannot be unit-tested without a real window
-//! runtime. This is an accepted exemption: the compilation gate (`cargo check`
-//! + `cargo test`) and the `generate_context!()` macro verify the config is
-//! valid at compile time. Production logic (game code, commands, plugins)
-//! will live in separate modules and be tested individually.
+
+/// Runs the Tauri application.
+///
+/// # Errors
+/// Returns an error reported by `tauri::Builder::run`.
+pub fn run() -> tauri::Result<()> {
+    tauri::Builder::default().run(tauri::generate_context!())
+}
+
+/// Reports a startup error and terminates with a nonzero exit status.
+pub fn report_startup_error(error: tauri::Error) -> ! {
+    eprintln!("failed to run Tauri application: {error}");
+    std::process::exit(1);
+}
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
-pub fn run() {
-    if let Err(error) = tauri::Builder::default().run(tauri::generate_context!()) {
-        eprintln!("failed to run tauri application: {error}");
+pub fn mobile_entrypoint() {
+    if let Err(error) = run() {
+        report_startup_error(error);
     }
 }
 
-// ---------------------------------------------------------------------------
-// Minimal test — proves the module compiles and `run()` is callable.
-// Because `run()` blocks on the event loop, a real test would need mocking
-// infrastructure that is overkill for a bootstrap scaffold.
-// ---------------------------------------------------------------------------
 #[cfg(test)]
 mod tests {
-    // Tauri bootstrap exemption: `run()` starts an event loop that cannot be
-    // stopped from a unit test without the runtime. The compile gate above is
-    // the test boundary for this scaffold.
+    use crate::run;
+
     #[test]
-    fn tauri_bootstrap_compiles() {
-        // If this module compiles, `generate_context!()` resolved successfully
-        // and `tauri::Builder::default().run()` accepted the context type.
-        // Any misconfiguration in `tauri.conf.json` or `capabilities/` will
-        // surface as a compile error, not a test failure.
-        assert!(true);
+    fn configured_main_window_has_expected_title_and_size() {
+        // Given: the Tauri context generated from the application configuration.
+        let context: tauri::Context<tauri::Wry> = tauri::generate_context!();
+
+        // When: the configured main window is selected.
+        let window = context
+            .config()
+            .app
+            .windows
+            .first()
+            .expect("the application config must define a main window");
+
+        // Then: its user-facing identity and initial dimensions are explicit.
+        assert_eq!(window.label, "main");
+        assert_eq!(window.title, "TSP Template");
+        assert_eq!(window.width, 1280.0);
+        assert_eq!(window.height, 720.0);
+    }
+
+    #[test]
+    fn public_bootstrap_is_fallible_while_mobile_entrypoint_returns_unit() {
+        // Given: the public desktop and mobile bootstrap entrypoints.
+        // When: the compiler checks their function signatures.
+        let _: fn() -> tauri::Result<()> = run;
+        let _: fn() = crate::mobile_entrypoint;
+
+        // Then: the fallible builder call cannot be discarded by the mobile macro.
     }
 }
