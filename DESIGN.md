@@ -10,7 +10,6 @@ Minimal Phaser game canvas rendered inside a SolidJS shell. No UI chrome, menus,
 |---|---|---|
 | Canvas size | Viewport | Phaser responsive scale config |
 | Background | #000000 | Phaser `backgroundColor` |
-| Text color | #ffffff | Starter scene title |
 
 ## Layout
 
