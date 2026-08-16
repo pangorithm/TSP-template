@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { createActionDispatcher, createActionInput } from "../src/game/input";
 
 const inputModulePath = "../src/game/input";
 
@@ -43,6 +44,35 @@ function isInputModule(value: unknown): value is InputModule {
 }
 
 describe("generic action input", () => {
+  it("preserves a caller action union through lookup and dispatch", () => {
+    // Given: bindings restricted to a caller-defined action union
+    type MenuAction = "open" | "close";
+    const input = createActionInput({
+      keyboard: { KeyO: "open" },
+      pointer: "open",
+      touch: "close",
+    } satisfies {
+      readonly keyboard: Readonly<Record<string, MenuAction>>;
+      readonly pointer: MenuAction;
+      readonly touch: MenuAction;
+    });
+    const events: {
+      readonly action: MenuAction;
+      readonly source: "keyboard" | "pointer" | "touch";
+    }[] = [];
+    const dispatcher = createActionDispatcher(input, (event) => {
+      events.push(event);
+    });
+
+    // When: a configured keyboard action is looked up and dispatched
+    const action: MenuAction | undefined = input.actionForKeyboard("KeyO");
+    dispatcher.dispatchKeyboard("KeyO");
+
+    // Then: both public paths retain the caller's action union
+    expect(action).toBe("open");
+    expect(events).toEqual([{ action: "open", source: "keyboard" }]);
+  });
+
   it("maps configured keyboard codes to caller-defined actions", async () => {
     // Given: keyboard bindings that use no genre-specific action names
     const inputCandidate: unknown = await import(inputModulePath);

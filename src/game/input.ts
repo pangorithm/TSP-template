@@ -1,29 +1,32 @@
-export type ActionInputBindings = {
-  readonly keyboard: Readonly<Record<string, string>>;
-  readonly pointer: string;
-  readonly touch: string;
+export type ActionInputBindings<TAction extends string> = {
+  readonly keyboard: Readonly<Record<string, TAction>>;
+  readonly pointer: TAction;
+  readonly touch: TAction;
 };
 
-export type ActionInput = {
-  readonly actionForKeyboard: (code: string) => string | undefined;
-  readonly actionForPointer: () => string;
-  readonly actionForTouch: () => string;
+export type ActionInput<TAction extends string> = {
+  readonly actionForKeyboard: (code: string) => TAction | undefined;
+  readonly actionForPointer: () => TAction;
+  readonly actionForTouch: () => TAction;
 };
 
 export type ActionSource = "keyboard" | "pointer" | "touch";
 
-export type ActionEvent = {
-  readonly action: string;
+export type ActionEvent<TAction extends string> = {
+  readonly action: TAction;
   readonly source: ActionSource;
 };
 
-export type ActionDispatcher = {
+export type ActionDispatcher<TAction extends string> = {
+  readonly [dispatcherAction]?: TAction;
   readonly dispatchKeyboard: (code: string) => void;
   readonly dispatchPointer: () => void;
   readonly dispatchTouch: () => void;
 };
 
-export function createActionInput(bindings: ActionInputBindings): ActionInput {
+export function createActionInput<TAction extends string>(
+  bindings: ActionInputBindings<TAction>,
+): ActionInput<TAction> {
   return {
     actionForKeyboard: (code) => bindings.keyboard[code],
     actionForPointer: () => bindings.pointer,
@@ -31,11 +34,11 @@ export function createActionInput(bindings: ActionInputBindings): ActionInput {
   };
 }
 
-export function createActionDispatcher(
-  input: ActionInput,
-  emit: (event: ActionEvent) => void,
-): ActionDispatcher {
-  const dispatch = (action: string | undefined, source: ActionSource): void => {
+export function createActionDispatcher<TAction extends string>(
+  input: ActionInput<TAction>,
+  emit: (event: ActionEvent<TAction>) => void,
+): ActionDispatcher<TAction> {
+  const dispatch = (action: TAction | undefined, source: ActionSource): void => {
     if (action !== undefined) {
       emit({ action, source });
     }
@@ -47,3 +50,4 @@ export function createActionDispatcher(
     dispatchTouch: () => dispatch(input.actionForTouch(), "touch"),
   };
 }
+declare const dispatcherAction: unique symbol;
