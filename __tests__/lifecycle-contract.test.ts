@@ -1,6 +1,7 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const lifecycleModulePath = "../src/game/lifecycle";
+let documentHasFocus = true;
 
 type LifecycleModule = {
   readonly installGameLifecycle: (callbacks: {
@@ -17,6 +18,14 @@ function isLifecycleModule(value: unknown): value is LifecycleModule {
     typeof value.installGameLifecycle === "function"
   );
 }
+
+beforeEach(() => {
+  documentHasFocus = true;
+  Object.defineProperty(document, "hasFocus", {
+    configurable: true,
+    value: () => documentHasFocus,
+  });
+});
 
 afterEach(() => {
   Object.defineProperty(document, "visibilityState", {
@@ -139,8 +148,108 @@ describe("game lifecycle", () => {
     teardown();
   });
 
+  it("does not resume when focus returns while the document remains hidden", async () => {
+    // Given: an active game that loses focus and then becomes hidden
+    const lifecycleCandidate: unknown = await import(lifecycleModulePath);
+    expect(isLifecycleModule(lifecycleCandidate)).toBe(true);
+    if (!isLifecycleModule(lifecycleCandidate)) {
+      return;
+    }
+    const pause = vi.fn();
+    const resume = vi.fn();
+    const teardown = lifecycleCandidate.installGameLifecycle({ pause, resume });
+    window.dispatchEvent(new Event("blur"));
+    Object.defineProperty(document, "visibilityState", {
+      configurable: true,
+      value: "hidden",
+    });
+    document.dispatchEvent(new Event("visibilitychange"));
+
+    // When: focus returns while visibility still blocks the game
+    window.dispatchEvent(new Event("focus"));
+
+    // Then: lifecycle keeps the game paused before visibility clears
+    expect(pause).toHaveBeenCalledTimes(1);
+    expect(resume).not.toHaveBeenCalled();
+
+    Object.defineProperty(document, "visibilityState", {
+      configurable: true,
+      value: "visible",
+    });
+    document.dispatchEvent(new Event("visibilitychange"));
+
+    // Then: lifecycle resumes exactly once after the final blocker clears
+    expect(resume).toHaveBeenCalledTimes(1);
+    teardown();
+  });
+
+  it("pauses immediately when installed while the document is hidden", async () => {
+    // Given: a document that is already hidden before lifecycle installation
+    Object.defineProperty(document, "visibilityState", {
+      configurable: true,
+      value: "hidden",
+    });
+    const lifecycleCandidate: unknown = await import(lifecycleModulePath);
+    expect(isLifecycleModule(lifecycleCandidate)).toBe(true);
+    if (!isLifecycleModule(lifecycleCandidate)) {
+      return;
+    }
+    const pause = vi.fn();
+    const resume = vi.fn();
+
+    // When: lifecycle ownership is installed
+    const teardown = lifecycleCandidate.installGameLifecycle({ pause, resume });
+
+    // Then: it pauses the game without waiting for another event
+    expect(pause).toHaveBeenCalledTimes(1);
+    expect(resume).not.toHaveBeenCalled();
+    teardown();
+  });
+
+  it("pauses immediately when installed while the document is unfocused", async () => {
+    // Given: a visible document that does not have focus
+    documentHasFocus = false;
+    const lifecycleCandidate: unknown = await import(lifecycleModulePath);
+    expect(isLifecycleModule(lifecycleCandidate)).toBe(true);
+    if (!isLifecycleModule(lifecycleCandidate)) {
+      return;
+    }
+    const pause = vi.fn();
+    const resume = vi.fn();
+
+    // When: lifecycle ownership is installed
+    const teardown = lifecycleCandidate.installGameLifecycle({ pause, resume });
+
+    // Then: it pauses without waiting for a blur event
+    expect(pause).toHaveBeenCalledTimes(1);
+    expect(resume).not.toHaveBeenCalled();
+    teardown();
+  });
+
   it("removes document and window listeners during teardown", async () => {
-    // Given: a lifecycle installation that is immediately torn down
+    // Given: a lifecycle installation paused before teardown
+    const lifecycleCandidate: unknown = await import(lifecycleModulePath);
+    expect(isLifecycleModule(lifecycleCandidate)).toBe(true);
+    if (!isLifecycleModule(lifecycleCandidate)) {
+      return;
+    }
+    const pause = vi.fn();
+    const resume = vi.fn();
+    const teardown = lifecycleCandidate.installGameLifecycle({ pause, resume });
+    window.dispatchEvent(new Event("blur"));
+    teardown();
+
+    // When: document and window lifecycle events occur after teardown
+    document.dispatchEvent(new Event("visibilitychange"));
+    window.dispatchEvent(new Event("focus"));
+
+    // Then: no orphaned listener resumes the lifecycle-paused game
+    expect(pause).toHaveBeenCalledTimes(1);
+    expect(resume).not.toHaveBeenCalled();
+  });
+
+  it("does not pause after teardown when visibility or focus changes", async () => {
+    // Given: an active lifecycle installation that is immediately torn down
     const lifecycleCandidate: unknown = await import(lifecycleModulePath);
     expect(isLifecycleModule(lifecycleCandidate)).toBe(true);
     if (!isLifecycleModule(lifecycleCandidate)) {
@@ -150,13 +259,16 @@ describe("game lifecycle", () => {
     const resume = vi.fn();
     const teardown = lifecycleCandidate.installGameLifecycle({ pause, resume });
     teardown();
+    Object.defineProperty(document, "visibilityState", {
+      configurable: true,
+      value: "hidden",
+    });
 
-    // When: document and window lifecycle events occur after teardown
+    // When: the removed document and window listeners would receive blockers
     document.dispatchEvent(new Event("visibilitychange"));
     window.dispatchEvent(new Event("blur"));
-    window.dispatchEvent(new Event("focus"));
 
-    // Then: no orphaned listener invokes game callbacks
+    // Then: no orphaned listener pauses the game
     expect(pause).not.toHaveBeenCalled();
     expect(resume).not.toHaveBeenCalled();
   });

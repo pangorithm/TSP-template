@@ -21,12 +21,18 @@ vi.mock("phaser", () => {
     }
   }
 
+  const mockSleep = vi.fn();
+  const mockWake = vi.fn();
   const MockGame = vi.fn(function (
-    this: { destroy: typeof mockDestroy },
+    this: {
+      destroy: typeof mockDestroy;
+      loop: { readonly sleep: typeof mockSleep; readonly wake: typeof mockWake };
+    },
     _config?: unknown,
   ) {
     void _config;
     this.destroy = mockDestroy;
+    this.loop = { sleep: mockSleep, wake: mockWake };
   });
 
   return {

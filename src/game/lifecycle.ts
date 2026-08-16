@@ -4,6 +4,8 @@ export type GameLifecycleCallbacks = {
 };
 
 export function installGameLifecycle(callbacks: GameLifecycleCallbacks): () => void {
+  let documentIsVisible = document.visibilityState !== "hidden";
+  let windowIsFocused = document.hasFocus();
   let pausedByLifecycle = false;
 
   const pause = (): void => {
@@ -24,8 +26,8 @@ export function installGameLifecycle(callbacks: GameLifecycleCallbacks): () => v
     callbacks.resume();
   };
 
-  const handleVisibilityChange = (): void => {
-    if (document.visibilityState === "hidden") {
+  const reconcile = (): void => {
+    if (!documentIsVisible || !windowIsFocused) {
       pause();
       return;
     }
@@ -33,13 +35,29 @@ export function installGameLifecycle(callbacks: GameLifecycleCallbacks): () => v
     resume();
   };
 
+  const handleVisibilityChange = (): void => {
+    documentIsVisible = document.visibilityState !== "hidden";
+    reconcile();
+  };
+
+  const handleBlur = (): void => {
+    windowIsFocused = false;
+    reconcile();
+  };
+
+  const handleFocus = (): void => {
+    windowIsFocused = true;
+    reconcile();
+  };
+
   document.addEventListener("visibilitychange", handleVisibilityChange);
-  window.addEventListener("blur", pause);
-  window.addEventListener("focus", resume);
+  window.addEventListener("blur", handleBlur);
+  window.addEventListener("focus", handleFocus);
+  reconcile();
 
   return () => {
     document.removeEventListener("visibilitychange", handleVisibilityChange);
-    window.removeEventListener("blur", pause);
-    window.removeEventListener("focus", resume);
+    window.removeEventListener("blur", handleBlur);
+    window.removeEventListener("focus", handleFocus);
   };
 }
