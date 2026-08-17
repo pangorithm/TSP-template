@@ -10,6 +10,7 @@ src-tauri/gen/
 # Local tooling and operating-system files
 .omo/
 .tmp/
+.playwright-mcp/
 .env
 .env.*
 !.env.example
