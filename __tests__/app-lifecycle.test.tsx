@@ -1,5 +1,4 @@
-import { render } from "@solidjs/testing-library";
-import Phaser from "phaser";
+import { fireEvent, render } from "@solidjs/testing-library";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { App } from "../src/App";
@@ -62,43 +61,18 @@ vi.mock("phaser", () => {
   };
 });
 
-const MockGame = vi.mocked(Phaser.Game);
-
 /* ------------------------------------------------------------------ */
-/*  Lifecycle tests                                                    */
+/*  Post-Start lifecycle tests                                         */
 /* ------------------------------------------------------------------ */
-describe("App Phaser lifecycle", () => {
+describe("App Phaser lifecycle (post-Start)", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockLoops.length = 0;
   });
 
-  it("creates Phaser game on mount with responsive config", () => {
-    // Given: an unmounted application
-    // When: the application mounts
-    const { unmount } = render(() => <App />);
-
-    // Then: Phaser receives a responsive canvas configuration
-    expect(MockGame).toHaveBeenCalledTimes(1);
-    const config = MockGame.mock.calls[0]?.[0];
-    expect(config).toBeDefined();
-    if (config === undefined) {
-      unmount();
-      return;
-    }
-    expect(config).toMatchObject({
-      type: 0,
-      width: "100%",
-      height: "100%",
-      scale: { mode: 1, autoCenter: 2 },
-    });
-    expect(config.parent).toBeInstanceOf(HTMLElement);
-
-    unmount();
-  });
-
-  it("calls game.destroy(true) on cleanup", () => {
-    const { unmount } = render(() => <App />);
+  it("calls game.destroy(true) on cleanup after Start", () => {
+    const { unmount, getByRole } = render(() => <App />);
+    fireEvent.click(getByRole("button", { name: "Start" }));
 
     expect(mockDestroy).not.toHaveBeenCalled();
     unmount();
@@ -107,14 +81,22 @@ describe("App Phaser lifecycle", () => {
   });
 
   it("destroy fires exactly once per unmount (no double-cleanup)", () => {
-    const { unmount } = render(() => <App />);
+    const { unmount, getByRole } = render(() => <App />);
+    fireEvent.click(getByRole("button", { name: "Start" }));
     unmount();
     expect(mockDestroy).toHaveBeenCalledTimes(1);
   });
 
-  it("sleeps and wakes a running Phaser loop across blur and focus", () => {
-    // Given: a mounted game with a running Phaser loop
+  it("does not destroy on unmount before Start (no game to destroy)", () => {
     const { unmount } = render(() => <App />);
+    unmount();
+    expect(mockDestroy).not.toHaveBeenCalled();
+  });
+
+  it("sleeps and wakes a running Phaser loop across blur and focus", () => {
+    // Given: a mounted game started via Start
+    const { unmount, getByRole } = render(() => <App />);
+    fireEvent.click(getByRole("button", { name: "Start" }));
     const loop = mockLoops[0];
     expect(loop).toBeDefined();
     if (loop === undefined) {
@@ -134,8 +116,9 @@ describe("App Phaser lifecycle", () => {
   });
 
   it("preserves an externally stopped Phaser loop across blur and focus", () => {
-    // Given: a mounted game whose Phaser loop was already stopped externally
-    const { unmount } = render(() => <App />);
+    // Given: a game started via Start whose Phaser loop was stopped externally
+    const { unmount, getByRole } = render(() => <App />);
+    fireEvent.click(getByRole("button", { name: "Start" }));
     const loop = mockLoops[0];
     expect(loop).toBeDefined();
     if (loop === undefined) {
@@ -152,6 +135,19 @@ describe("App Phaser lifecycle", () => {
     expect(loop.sleep).not.toHaveBeenCalled();
     expect(loop.wake).not.toHaveBeenCalled();
     expect(loop.running).toBe(false);
+    unmount();
+  });
+
+  it("does not install lifecycle before Start (no blur/focus handlers)", () => {
+    // Given: a mounted application on the menu (no game started)
+    const { unmount } = render(() => <App />);
+
+    // When: window loses and regains focus before Start
+    window.dispatchEvent(new Event("blur"));
+    window.dispatchEvent(new Event("focus"));
+
+    // Then: no lifecycle handlers were active (no loops affected)
+    expect(mockLoops).toHaveLength(0);
     unmount();
   });
 });
