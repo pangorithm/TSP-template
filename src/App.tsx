@@ -1,19 +1,36 @@
 import type Phaser from "phaser";
-import { onCleanup, onMount } from "solid-js";
+import { createEffect, createSignal, onCleanup } from "solid-js";
 import { createGame } from "./game/config";
 import { installGameLifecycle } from "./game/lifecycle";
+import { MainMenu, type MenuAction } from "./menu/MainMenu";
 
-export function App() {
+export type GameFactory = (parent: HTMLElement) => Phaser.Game;
+
+export type AppProps = {
+  readonly createContinuationGame?: GameFactory;
+};
+
+export function App(props: AppProps) {
+  const [action, setAction] = createSignal<MenuAction | null>(null);
   let container: HTMLDivElement | undefined;
   let game: Phaser.Game | undefined;
   let removeLifecycle: (() => void) | undefined;
 
-  onMount(() => {
-    if (container === undefined) {
-      return;
+  createEffect(() => {
+    const currentAction = action();
+    if (currentAction === null) return;
+
+    if (container === undefined) return;
+
+    if (
+      currentAction === "continue" &&
+      props.createContinuationGame !== undefined
+    ) {
+      game = props.createContinuationGame(container);
+    } else {
+      game = createGame(container);
     }
 
-    game = createGame(container);
     removeLifecycle = installGameLifecycle({
       pause: () => {
         if (game === undefined || !game.loop.running) {
@@ -32,5 +49,20 @@ export function App() {
     game?.destroy(true);
   });
 
-  return <div ref={(element) => (container = element)} id="game-container" />;
+  function handleAction(selectedAction: MenuAction): void {
+    setAction(selectedAction);
+  }
+
+  return (
+    <>
+      {action() === null ? (
+        <MainMenu
+          onAction={handleAction}
+          showContinue={props.createContinuationGame !== undefined}
+        />
+      ) : (
+        <div ref={(element) => (container = element)} id="game-container" />
+      )}
+    </>
+  );
 }
