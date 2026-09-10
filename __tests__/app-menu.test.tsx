@@ -1,8 +1,8 @@
-import { fireEvent, render } from "@solidjs/testing-library";
+import { fireEvent, render, waitFor } from "@solidjs/testing-library";
 import Phaser from "phaser";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { App } from "../src/App";
+import { App, type GameFactory } from "../src/App";
 
 /* ------------------------------------------------------------------ */
 /*  Phaser mock — captures Game constructor calls                      */
@@ -113,7 +113,7 @@ describe("App Start activation", () => {
     mockLoops.length = 0;
   });
 
-  it("creates a Phaser game when Start is clicked", () => {
+  it("creates a Phaser game when Start is clicked", async () => {
     // Given: a mounted application showing the menu
     const { unmount, getByRole } = render(() => <App />);
     expect(MockGame).not.toHaveBeenCalled();
@@ -122,7 +122,7 @@ describe("App Start activation", () => {
     fireEvent.click(getByRole("button", { name: "Start" }));
 
     // Then: Phaser receives a responsive canvas configuration
-    expect(MockGame).toHaveBeenCalledTimes(1);
+    await waitFor(() => expect(MockGame).toHaveBeenCalledTimes(1));
     const config = MockGame.mock.calls[0]?.[0];
     expect(config).toBeDefined();
     if (config === undefined) {
@@ -140,7 +140,7 @@ describe("App Start activation", () => {
     unmount();
   });
 
-  it("removes the menu from the DOM after Start", () => {
+  it("removes the menu controls from the DOM after Start", () => {
     // Given: a mounted application showing the menu
     const { unmount, getByRole, queryByText } = render(() => <App />);
     expect(getByRole("button", { name: "Start" })).toBeDefined();
@@ -148,17 +148,17 @@ describe("App Start activation", () => {
     // When: the user clicks Start
     fireEvent.click(getByRole("button", { name: "Start" }));
 
-    // Then: the menu is removed and the game container is present
-    expect(queryByText("TSP Template")).toBeNull();
+    // Then: menu controls are removed while startup status and game host appear
     expect(queryByText("Start")).toBeNull();
+    expect(getByRole("status")).toBeDefined();
 
     unmount();
   });
 
-  it("creates exactly one Phaser game after Start (no double-launch)", () => {
+  it("creates exactly one Phaser game after Start (no double-launch)", async () => {
     const { unmount, getByRole } = render(() => <App />);
     fireEvent.click(getByRole("button", { name: "Start" }));
-    expect(MockGame).toHaveBeenCalledTimes(1);
+    await waitFor(() => expect(MockGame).toHaveBeenCalledTimes(1));
 
     // Attempting to find and click Start again should not be possible
     unmount();
@@ -169,11 +169,12 @@ describe("App Start activation", () => {
 /*  Continuation factory tests                                         */
 /* ------------------------------------------------------------------ */
 describe("App continuation factory", () => {
-  const mockContinuationFactory = vi.fn<(parent: HTMLElement) => Phaser.Game>();
+  const mockContinuationFactory = vi.fn<GameFactory>();
 
   beforeEach(() => {
     vi.clearAllMocks();
     mockLoops.length = 0;
+    mockContinuationFactory.mockImplementation(() => new Promise<Phaser.Game>(() => undefined));
   });
 
   it("makes Continue visible only when createContinuationGame is injected", () => {
@@ -198,7 +199,7 @@ describe("App continuation factory", () => {
     unmountWithContinuation();
   });
 
-  it("removes the menu and calls the continuation factory once with the game container on Continue click", () => {
+  it("removes the menu and calls the continuation factory once with the game container on Continue click", async () => {
     // Given: App mounted with an injected continuation factory
     const { unmount, getByRole, queryByText } = render(() => (
       <App createContinuationGame={mockContinuationFactory} />
@@ -209,8 +210,9 @@ describe("App continuation factory", () => {
     fireEvent.click(continueButton);
 
     // Then: the menu is removed and the factory was invoked exactly once
-    expect(queryByText("TSP Template")).toBeNull();
-    expect(mockContinuationFactory).toHaveBeenCalledTimes(1);
+    expect(queryByText("Continue")).toBeNull();
+    expect(getByRole("status")).toBeDefined();
+    await waitFor(() => expect(mockContinuationFactory).toHaveBeenCalledTimes(1));
 
     const [parent] = mockContinuationFactory.mock.calls[0] ?? [];
     expect(parent).toBeInstanceOf(HTMLElement);
@@ -221,7 +223,7 @@ describe("App continuation factory", () => {
     unmount();
   });
 
-  it("does not call the continuation factory when the default Start is clicked", () => {
+  it("does not call the continuation factory when the default Start is clicked", async () => {
     // Given: App with a continuation factory
     const { unmount, getByRole } = render(() => (
       <App createContinuationGame={mockContinuationFactory} />
@@ -231,7 +233,7 @@ describe("App continuation factory", () => {
     fireEvent.click(getByRole("button", { name: "Start" }));
 
     // Then: the default game path runs and the continuation factory was not invoked
-    expect(MockGame).toHaveBeenCalledTimes(1);
+    await waitFor(() => expect(MockGame).toHaveBeenCalledTimes(1));
     expect(mockContinuationFactory).not.toHaveBeenCalled();
 
     unmount();

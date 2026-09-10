@@ -1,4 +1,4 @@
-import { fireEvent, render } from "@solidjs/testing-library";
+import { fireEvent, render, waitFor } from "@solidjs/testing-library";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { App } from "../src/App";
@@ -70,19 +70,21 @@ describe("App Phaser lifecycle (post-Start)", () => {
     mockLoops.length = 0;
   });
 
-  it("calls game.destroy(true) on cleanup after Start", () => {
+  it("calls game.destroy(true) on cleanup after Start", async () => {
     const { unmount, getByRole } = render(() => <App />);
     fireEvent.click(getByRole("button", { name: "Start" }));
 
+    await waitFor(() => expect(mockLoops).toHaveLength(1));
     expect(mockDestroy).not.toHaveBeenCalled();
     unmount();
     expect(mockDestroy).toHaveBeenCalledTimes(1);
     expect(mockDestroy).toHaveBeenCalledWith(true);
   });
 
-  it("destroy fires exactly once per unmount (no double-cleanup)", () => {
+  it("destroy fires exactly once per unmount (no double-cleanup)", async () => {
     const { unmount, getByRole } = render(() => <App />);
     fireEvent.click(getByRole("button", { name: "Start" }));
+    await waitFor(() => expect(mockLoops).toHaveLength(1));
     unmount();
     expect(mockDestroy).toHaveBeenCalledTimes(1);
   });
@@ -93,10 +95,11 @@ describe("App Phaser lifecycle (post-Start)", () => {
     expect(mockDestroy).not.toHaveBeenCalled();
   });
 
-  it("sleeps and wakes a running Phaser loop across blur and focus", () => {
+  it("sleeps and wakes a running Phaser loop across blur and focus", async () => {
     // Given: a mounted game started via Start
     const { unmount, getByRole } = render(() => <App />);
     fireEvent.click(getByRole("button", { name: "Start" }));
+    await waitFor(() => expect(mockLoops).toHaveLength(1));
     const loop = mockLoops[0];
     expect(loop).toBeDefined();
     if (loop === undefined) {
@@ -115,10 +118,11 @@ describe("App Phaser lifecycle (post-Start)", () => {
     unmount();
   });
 
-  it("preserves an externally stopped Phaser loop across blur and focus", () => {
+  it("preserves an externally stopped Phaser loop across blur and focus", async () => {
     // Given: a game started via Start whose Phaser loop was stopped externally
     const { unmount, getByRole } = render(() => <App />);
     fireEvent.click(getByRole("button", { name: "Start" }));
+    await waitFor(() => expect(mockLoops).toHaveLength(1));
     const loop = mockLoops[0];
     expect(loop).toBeDefined();
     if (loop === undefined) {
