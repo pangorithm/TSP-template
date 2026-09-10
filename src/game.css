@@ -11,8 +11,8 @@
   --color-border-hover: #555;
   --color-bg-hover: rgba(255, 255, 255, 0.04);
   --color-bg-active: rgba(255, 255, 255, 0.08);
-  --font-sans: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
-    Roboto, Helvetica, Arial, sans-serif;
+  --font-sans:
+    system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   --space-xs: 0.5rem;
   --space-sm: 1rem;
   --space-md: 1.5rem;
@@ -70,6 +70,11 @@ body,
   gap: var(--space-sm);
 }
 
+.menu__message {
+  margin: 0;
+  color: var(--color-text);
+}
+
 .menu__button {
   font-family: var(--font-sans);
   font-size: 1rem;
@@ -82,7 +87,8 @@ body,
   cursor: pointer;
   min-width: 120px;
   min-height: 44px;
-  transition: border-color var(--transition-fast),
+  transition:
+    border-color var(--transition-fast),
     background-color var(--transition-fast);
 }
 
@@ -130,6 +136,18 @@ body,
 /* ---------------------------------------------------------------
    Game container (post-Start)
    --------------------------------------------------------------- */
+.game-stage {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+.startup-status {
+  position: absolute;
+  inset: 0;
+  background: var(--color-bg);
+}
+
 #game-container {
   width: 100%;
   height: 100%;
