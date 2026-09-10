@@ -10,19 +10,11 @@ export function MainMenu(props: MainMenuProps) {
     <main class="menu">
       <h1 class="menu__title">TSP Template</h1>
       <div class="menu__actions">
-        <button
-          class="menu__button"
-          type="button"
-          onClick={() => props.onAction("start")}
-        >
+        <button class="menu__button" type="button" onClick={() => props.onAction("start")}>
           Start
         </button>
         {props.showContinue && (
-          <button
-            class="menu__button"
-            type="button"
-            onClick={() => props.onAction("continue")}
-          >
+          <button class="menu__button" type="button" onClick={() => props.onAction("continue")}>
             Continue
           </button>
         )}

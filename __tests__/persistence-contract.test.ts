@@ -274,8 +274,7 @@ describe("typed persistence", () => {
     storage.setItem("settings", "null");
     const fallback: Settings = { musicEnabled: true, volume: 0.6 };
     const nullableCodec: PersistenceCodec<Settings | null> = {
-      decode: (serialized) =>
-        serialized === "null" ? null : settingsCodec.decode(serialized),
+      decode: (serialized) => (serialized === "null" ? null : settingsCodec.decode(serialized)),
       encode: (value) => (value === null ? "null" : settingsCodec.encode(value)),
     };
     const persistence = persistenceCandidate.createPersistence<Settings | null>({
@@ -311,8 +310,6 @@ describe("typed persistence", () => {
     persistence.save({ musicEnabled: false, volume: 0.25 });
 
     // Then: storage receives the codec's serialized string
-    expect(storage.getItem("settings")).toBe(
-      '{"musicEnabled":false,"volume":0.25}',
-    );
+    expect(storage.getItem("settings")).toBe('{"musicEnabled":false,"volume":0.25}');
   });
 });

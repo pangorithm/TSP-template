@@ -212,10 +212,7 @@ describe("Phaser foundation", () => {
     const sceneKeysCandidate: unknown = await import(sceneKeysModulePath);
     expect(isGameSceneModule(gameSceneCandidate)).toBe(true);
     expect(isSceneKeysModule(sceneKeysCandidate)).toBe(true);
-    if (
-      !isGameSceneModule(gameSceneCandidate) ||
-      !isSceneKeysModule(sceneKeysCandidate)
-    ) {
+    if (!isGameSceneModule(gameSceneCandidate) || !isSceneKeysModule(sceneKeysCandidate)) {
       return;
     }
 

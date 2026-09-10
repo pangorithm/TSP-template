@@ -88,8 +88,7 @@ describe("game lifecycle", () => {
 
   it.each([
     ["focus", () => window.dispatchEvent(new Event("focus"))],
-    ["visibility-visible", () =>
-      document.dispatchEvent(new Event("visibilitychange"))],
+    ["visibility-visible", () => document.dispatchEvent(new Event("visibilitychange"))],
   ])("does not resume while unpaused on %s", async (_eventName, dispatch) => {
     // Given: lifecycle callbacks for a game not paused by this binding
     const lifecycleCandidate: unknown = await import(lifecycleModulePath);

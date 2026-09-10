@@ -7,10 +7,7 @@ export type GameFactoryOptions = Pick<
   "backgroundColor" | "banner" | "fps" | "render"
 >;
 
-export function createGame(
-  parent: HTMLElement,
-  options: GameFactoryOptions = {},
-): Phaser.Game {
+export function createGame(parent: HTMLElement, options: GameFactoryOptions = {}): Phaser.Game {
   const DEFAULT_BACKGROUND = "#000000" as const;
 
   const optionalConfig = {

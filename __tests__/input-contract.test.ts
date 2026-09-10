@@ -36,10 +36,10 @@ function isInputModule(value: unknown): value is InputModule {
   return (
     typeof value === "object" &&
     value !== null &&
-      "createActionInput" in value &&
-      typeof value.createActionInput === "function" &&
-      "createActionDispatcher" in value &&
-      typeof value.createActionDispatcher === "function"
+    "createActionInput" in value &&
+    typeof value.createActionInput === "function" &&
+    "createActionDispatcher" in value &&
+    typeof value.createActionDispatcher === "function"
   );
 }
 
