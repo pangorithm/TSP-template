@@ -18,6 +18,7 @@ export type PersistenceOptions<T> = {
 
 export type Persistence<T> = {
   readonly clear: () => void;
+  readonly hasSavedValue: () => boolean;
   readonly load: () => T;
   readonly save: (value: T) => void;
 };
@@ -26,6 +27,10 @@ export function createPersistence<T>(options: PersistenceOptions<T>): Persistenc
   return {
     clear: () => {
       options.storage.removeItem(options.key);
+    },
+    hasSavedValue: () => {
+      const serialized = options.storage.getItem(options.key);
+      return serialized !== null && options.codec.decode(serialized) !== undefined;
     },
     load: () => {
       const serialized = options.storage.getItem(options.key);
