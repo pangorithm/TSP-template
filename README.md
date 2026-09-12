@@ -2,9 +2,36 @@
 
 Genre-neutral cross-platform game foundation built on Tauri v2 (Rust desktop/mobile shell), SolidJS (web host UI), and Phaser (game engine).
 
-## Purpose & Scope
+## Why This Repository Exists
 
-This repository provides a minimalist runtime seam for cross-platform games. It handles menu navigation, dynamic Phaser loading, visibility/focus pause recovery, input mapping, and persistence abstractions. The default game scene is intentionally blank; genre-specific mechanics, save schemas, UI components, and assets are added outside foundation modules.
+Building a cross-platform Phaser game involves two different kinds of work:
+
+1. **Reusable platform work** — native shell integration, game startup and teardown, browser lifecycle handling, input translation, persistence boundaries, responsive hosting, and cross-platform verification.
+2. **Game-specific work** — rules, worlds, progression, content, UI, assets, controls, and save schemas that belong to one game.
+
+Mixing those concerns makes the foundation harder to reuse and forces every new game to solve the same lifecycle and platform problems again. TSP Template separates them. It provides a small, tested foundation for the reusable platform work while deliberately leaving the game-specific layer empty.
+
+The intended result is not a demo game or a collection of sample mechanics. It is a stable starting point that lets a game team add its own domain modules without repeatedly modifying the shared runtime foundation.
+
+### What the foundation owns
+
+- Tauri desktop/mobile shell configuration and minimal native permissions
+- SolidJS menu, loading, startup recovery, and Phaser host lifecycle
+- Lazy Phaser loading, instance creation, deterministic teardown, and responsive canvas hosting
+- Browser visibility/focus pause ownership
+- Device input to caller-defined action mapping
+- Typed persistence ports with caller-provided storage and codecs
+- Strict type, contract-test, browser E2E, Rust, and native-build quality gates
+
+### What each game owns
+
+- Gameplay rules, scenes, entities, progression, and content
+- Game-specific menus, HUDs, visual direction, audio, and assets
+- Input action names, bindings, and gameplay effects
+- Save schemas, migrations, codecs, and storage selection
+- Native APIs, permissions, telemetry, distribution, and release policy required by that game
+
+Use this repository when the goal is to build one or more Phaser games for web and Tauri targets on top of a reusable, replaceable foundation. Do not treat it as a game engine, an opinionated genre framework, or a source of ready-made gameplay.
 
 ## Design Priorities
 
