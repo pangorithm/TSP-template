@@ -43,6 +43,8 @@ cargo test --manifest-path src-tauri/Cargo.toml
 ## Conventions
 
 - Write a failing Vitest contract before changing runtime behavior.
+- Keep `README.md` as the single Korean-language project guide; do not create or maintain a separate translated README.
+- When documentation changes, preserve commands, paths, identifiers, and configuration names exactly while writing explanatory prose in Korean.
 - Keep `GameScene` generic; do not add sample mechanics, UI, assets, or save schemas there.
 - Add input behavior through action mappings, not direct gameplay effects.
 - Inject storage and codecs into `createPersistence`; do not couple it to `localStorage` or game data types.
