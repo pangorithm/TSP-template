@@ -22,5 +22,5 @@
     "jsxImportSource": "solid-js",
     "skipLibCheck": true
   },
-  "include": ["src", "__tests__", "e2e", "playwright.config.ts", "vite.config.ts"]
+  "include": ["src", "scripts", "__tests__", "e2e", "playwright.config.ts", "vite.config.ts"]
 }
