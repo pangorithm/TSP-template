@@ -1,14 +1,14 @@
 import { defineConfig, devices } from "@playwright/test";
 
 const baseURL = "http://127.0.0.1:4173";
-const isCI = process.env.CI !== undefined;
+const isCI = process.env["CI"] !== undefined;
 
 export default defineConfig({
   testDir: "./e2e",
   outputDir: ".tmp/qa/playwright-results",
   forbidOnly: isCI,
   retries: isCI ? 2 : 0,
-  workers: isCI ? 1 : undefined,
+  ...(isCI ? { workers: 1 } : {}),
   use: {
     baseURL,
     trace: "on-first-retry",
