@@ -120,7 +120,8 @@ bun run format:check  # Check formatting via Biome
 bun run lint          # Run Biome lints
 bun run typecheck     # TypeScript check without emitting code
 bun run test          # Run Vitest unit & integration contract tests
-bun run test:e2e      # Build bundle and run Playwright end-to-end tests
+bun run check:bundle  # Enforce the 24 KiB eager host JavaScript budget after a build
+bun run test:e2e      # Build, check the bundle budget, and run Chromium/WebKit E2E
 ```
 
 ### Tauri & Rust Desktop/Mobile
@@ -130,16 +131,22 @@ cargo check --manifest-path src-tauri/Cargo.toml  # Fast Rust compile check
 cargo test --manifest-path src-tauri/Cargo.toml   # Run Rust tests
 cargo fmt --manifest-path src-tauri/Cargo.toml --check # Check Rust code formatting
 cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets -- -D warnings # Rust lints
+cargo audit --file src-tauri/Cargo.lock # Check the lockfile for RustSec vulnerabilities
+cargo deny --manifest-path src-tauri/Cargo.toml check bans licenses sources # Enforce dependency policy
 ```
 
 ## CI Pipeline
 
-GitHub Actions workflow (`.github/workflows/ci.yml`) executes three parallel jobs:
-1. **Web Job**: Runs Bun 1.3.11 `check` (dependency audit, format, lint, typecheck, and unit tests) and `test:e2e` (Chromium via Playwright).
-2. **Rust Job (Ubuntu)**: Installs Linux Tauri system dependencies and runs Rust 1.98.1 `cargo fmt --check`, `cargo check`, `cargo test`, and `cargo clippy`.
-3. **Windows Native Job**: Installs the pinned Bun/Rust toolchains, runs locked Cargo checks/tests, and builds the native release executable with `bun run tauri -- build --no-bundle`.
+GitHub Actions workflow (`.github/workflows/ci.yml`) uses immutable action SHAs and runs these gates:
 
-CI does not create installers, sign binaries, or publish releases. macOS, Android, and iOS native execution remain separate platform checks; Chromium viewport tests do not substitute for device/WebView testing.
+1. **Web**: Bun audit, formatting, linting, typechecking, Vitest contracts, the eager bundle budget, and the complete Playwright suite in Chromium and WebKit.
+2. **Rust**: Rust 1.98.1 formatting, locked checks/tests, and Clippy.
+3. **Rust supply chain**: pinned `cargo-audit` and `cargo-deny` versions against `Cargo.lock` and `deny.toml`.
+4. **Desktop matrix**: locked Rust checks/tests, a Tauri `--no-bundle` build, and a short native-process startup smoke on Linux, Windows, and macOS.
+5. **Mobile**: an unsigned Android ARM64 debug APK build on Ubuntu and an iOS ARM64 simulator debug build on macOS. Each job regenerates its ignored `src-tauri/gen/` project.
+6. **SBOM and provenance**: an SPDX JSON SBOM artifact on every run and a GitHub build-provenance attestation on pushes.
+
+CI does not create desktop installers, sign binaries, test physical devices, or publish releases. Playwright WebKit is browser-engine coverage and does not substitute for Android WebView or iOS WKWebView device testing. The 24 KiB budget covers only the eagerly loaded host entry; lazy Phaser/game chunks intentionally remain consumer-controlled.
 
 ## Platform & Security Notes
 
@@ -151,8 +158,8 @@ App icons are located in `src-tauri/icons/` (`32x32.png`, `128x128.png`, `128x12
 
 ### Platform Constraints
 - **Desktop**: Windows and Linux builds run via standard Tauri CLI commands (`bun run tauri -- dev` / `bun run tauri -- build`).
-- **Android**: Initialize native project files with `bun run tauri -- android init` (requires Android SDK and NDK).
-- **iOS**: Target initialization and compilation require macOS with Xcode installed. The `tauri ios` subcommand is unavailable on non-macOS hosts.
+- **Android**: Initialize native project files with `bun run tauri -- android init` (requires Android SDK and NDK). CI verifies an unsigned ARM64 debug APK; signing and device tests remain consumer responsibilities.
+- **iOS**: Target initialization and compilation require macOS with Xcode installed. CI verifies an ARM64 simulator debug build; signing, App Store export, and physical-device tests remain consumer responsibilities. The `tauri ios` subcommand is unavailable on non-macOS hosts.
 - **Generated Folders**: Native mobile initialization generates `src-tauri/gen/`, which is git-ignored and should not be committed.
 
 ## Explicit Non-Goals
