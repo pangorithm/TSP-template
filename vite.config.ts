@@ -1,11 +1,11 @@
 /// <reference types="vitest" />
-import { defineConfig } from "vite";
 import solidPlugin from "vite-plugin-solid";
+import { defineConfig } from "vitest/config";
 
 const { TAURI_DEV_HOST: host, TAURI_ENV_DEBUG: debug, TAURI_ENV_PLATFORM: platform } = process.env;
 
 export default defineConfig({
-  plugins: [solidPlugin()],
+  plugins: [solidPlugin({ hot: process.env["VITEST"] !== "true" })],
   server: {
     host: host || false,
     port: 1420,
