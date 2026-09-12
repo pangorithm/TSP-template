@@ -48,6 +48,8 @@ cargo test --manifest-path src-tauri/Cargo.toml
 - Keep `GameScene` generic; do not add sample mechanics, UI, assets, or save schemas there.
 - Add input behavior through action mappings, not direct gameplay effects.
 - Inject storage and codecs into `createPersistence`; do not couple it to `localStorage` or game data types.
+- Treat the web build as an embedded Tauri WebView asset and test target, not a standalone deployment target.
+- When backend integration is added, keep HTTP and WebSocket ownership in an injected Tauri-native adapter; frontend game/UI code must not connect to `TSP-backend` through global `fetch` or `WebSocket` APIs.
 - Lifecycle code may resume only a game instance that it paused.
 - Keep Tauri capabilities minimal. `core:default` is sufficient until a native API is actually used.
 - Use named TypeScript exports and strict types; avoid `any`, assertions, and suppression comments.
