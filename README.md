@@ -74,6 +74,7 @@ App teardown removes its lifecycle listeners, schedules Phaser destruction, and 
 
 ### Web & Quality Gate
 ```bash
+bun run check         # Run format, lint, typecheck, and unit-test gates
 bun run format:check  # Check formatting via Biome
 bun run lint          # Run Biome lints
 bun run typecheck     # TypeScript check without emitting code

@@ -8,6 +8,7 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "check": "bun run format:check && bun run lint && bun run typecheck && bun run test",
     "format": "biome format --write .",
     "format:check": "biome format .",
     "lint": "biome lint .",
