@@ -1,11 +1,15 @@
 //! TSP-template library — constructs and runs the Tauri v2 application.
 
+fn context() -> tauri::Context<tauri::Wry> {
+    tauri::generate_context!()
+}
+
 /// Runs the Tauri application.
 ///
 /// # Errors
 /// Returns an error reported by `tauri::Builder::run`.
 pub fn run() -> tauri::Result<()> {
-    tauri::Builder::default().run(tauri::generate_context!())
+    tauri::Builder::default().run(context())
 }
 
 /// Reports a startup error and terminates with a nonzero exit status.
@@ -23,12 +27,12 @@ pub fn mobile_entrypoint() {
 
 #[cfg(test)]
 mod tests {
-    use crate::run;
+    use crate::{context, run};
 
     #[test]
     fn configured_main_window_has_expected_title_and_size() {
         // Given: the Tauri context generated from the application configuration.
-        let context: tauri::Context<tauri::Wry> = tauri::generate_context!();
+        let context = context();
 
         // When: the configured main window is selected.
         let window = context
