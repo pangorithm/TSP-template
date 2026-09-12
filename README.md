@@ -6,10 +6,21 @@ Genre-neutral cross-platform game foundation built on Tauri v2 (Rust desktop/mob
 
 This repository provides a minimalist runtime seam for cross-platform games. It handles menu navigation, dynamic Phaser loading, visibility/focus pause recovery, input mapping, and persistence abstractions. The default game scene is intentionally blank; genre-specific mechanics, save schemas, UI components, and assets are added outside foundation modules.
 
+## License
+
+This project's original code and documentation are licensed under the [PolyForm Noncommercial License 1.0.0](LICENSE).
+
+- Noncommercial use, modification, and redistribution are permitted under the license terms.
+- Commercial use is not granted by this license and requires a separate license from the relevant rights holders. For example, using this template to develop or distribute a paid game or an advertising-supported commercial game requires separate permission.
+- The license also expressly permits the personal uses and organization uses described in its **Personal Uses** and **Noncommercial Organizations** sections. The full license controls these permissions.
+- When redistributing covered material, include the license text or its URL and preserve any required notices.
+
+This is source-available software, not OSI-approved open-source software. Third-party dependencies and assets retain their own licenses; this license does not replace them.
+
 ## Prerequisites
 
 - **Bun**: 1.3.11
-- **Rust**: 1.88.0
+- **Rust**: 1.98.1 (pinned in `rust-toolchain.toml`, including Clippy, rustfmt, rust-analyzer, and rust-src)
 - **Node/OS dependencies**: Standard C toolchain and webkit2gtk (Linux) or C++ build tools (Windows) for Tauri native compilation.
 
 ## Quick Start
@@ -40,6 +51,10 @@ bun run tauri -- dev
 ### Lazy & Recoverable Startup
 Phaser is not loaded on initial menu rendering. When the user clicks **Start**, `App.tsx` dynamically imports `src/game/config.ts` and initializes the Phaser instance. A failed dynamic import offers **Reload** because the rejected import is cached for the document lifetime. Failures after the module resolves, including Phaser initialization and injected Continue factories, offer **Retry** and repeat the retained startup request.
 
+Unmounting App prevents a pending module from starting a game. A factory already in flight cannot be cancelled by App; its eventual game is destroyed instead.
+
+Pass the optional `onStartupError` callback to receive `{ stage, action, cause }`: `stage` is `"module"` or `"creation"`, `action` is `"start"` or `"continue"`, and `cause` retains the original rejection value as `unknown`. The error UI stays neutral. The callback is synchronous, must not throw, and is not invoked after App unmounts. Consumers choose their own logging or reporting implementation.
+
 ### Injected Persistence & Continue Boundary
 `createPersistence<T>` provides typed state handling with methods including `hasSavedValue()`, `load()`, `save()`, and `clear()`. Storage ports (e.g. `localStorage`, memory) and serialization codecs (e.g. JSON) are explicitly injected.
 - **No save schema or `localStorage` implementation is chosen in foundation modules.**
@@ -52,6 +67,8 @@ Phaser is not loaded on initial menu rendering. When the user clicks **Start**, 
 
 ### Lifecycle Management
 `installGameLifecycle` reconciles window focus and document visibility state. When visibility is hidden or focus is lost, it calls `game.loop.sleep()`. Upon return, it calls `game.loop.wake()`. It tracks whether pause was initiated by lifecycle to avoid waking games manually paused by the player.
+
+App teardown removes its lifecycle listeners, schedules Phaser destruction, and wakes a stopped loop so Phaser can process the destruction frame. This final wake is resource cleanup, not gameplay resumption. The browser suite verifies the real Phaser destruction event and canvas removal, not only a mocked `destroy()` call.
 
 ## Commands & Quality Checks
 
@@ -75,9 +92,12 @@ cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets -- -D warnings #
 
 ## CI Pipeline
 
-GitHub Actions workflow (`.github/workflows/ci.yml`) executes two parallel jobs on `ubuntu-latest`:
+GitHub Actions workflow (`.github/workflows/ci.yml`) executes three parallel jobs:
 1. **Web Job**: Runs Bun 1.3.11 `format:check`, `lint`, `typecheck`, `test`, and `test:e2e` (Chromium via Playwright).
-2. **Rust Job**: Runs Rust 1.88.0 `cargo fmt --check`, `cargo check`, `cargo test`, and `cargo clippy`.
+2. **Rust Job (Ubuntu)**: Installs Linux Tauri system dependencies and runs Rust 1.98.1 `cargo fmt --check`, `cargo check`, `cargo test`, and `cargo clippy`.
+3. **Windows Native Job**: Installs the pinned Bun/Rust toolchains, runs locked Cargo checks/tests, and builds the native release executable with `bun run tauri -- build --no-bundle`.
+
+CI does not create installers, sign binaries, or publish releases. macOS, Android, and iOS native execution remain separate platform checks; Chromium viewport tests do not substitute for device/WebView testing.
 
 ## Platform & Security Notes
 
