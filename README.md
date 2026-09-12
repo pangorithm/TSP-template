@@ -6,6 +6,19 @@ Genre-neutral cross-platform game foundation built on Tauri v2 (Rust desktop/mob
 
 This repository provides a minimalist runtime seam for cross-platform games. It handles menu navigation, dynamic Phaser loading, visibility/focus pause recovery, input mapping, and persistence abstractions. The default game scene is intentionally blank; genre-specific mechanics, save schemas, UI components, and assets are added outside foundation modules.
 
+## Design Priorities
+
+**Extensibility and maintainability are the highest priorities of this template.** The foundation should make new game-specific capabilities easy to add without requiring frequent changes to shared runtime code.
+
+- Keep foundation modules genre-neutral and isolate game rules, content, assets, UI, and save schemas in consumer-owned modules.
+- Prefer small, stable contracts with injected adapters over direct dependencies on browser globals, storage implementations, input devices, or game data types.
+- Give every runtime resource a clear owner and an explicit cleanup path, especially for Phaser instances, event listeners, and pause/resume transitions.
+- Add abstractions only for demonstrated extension points. Avoid speculative options and convenience features that enlarge the public API without a concrete consumer.
+- Protect externally observable behavior with contract tests and verify browser/runtime integration with real end-to-end coverage.
+- Treat strict types, minimal native permissions, deterministic builds, and automated quality gates as maintainability features rather than optional tooling.
+
+When design goals conflict, prefer the change that keeps game-specific code outside the foundation, minimizes coupling, preserves a small public API, and is easiest to verify and replace independently.
+
 ## License
 
 This project's original code and documentation are licensed under the [PolyForm Noncommercial License 1.0.0](LICENSE).

@@ -5,6 +5,16 @@
 Cross-platform game foundation: Tauri v2 (Rust shell), SolidJS (web host), and Phaser (game runtime).
 The default scene is intentionally empty; add genre-specific gameplay outside the foundation modules.
 
+## Engineering Priorities
+
+- Treat extensibility and maintainability as the primary decision criteria, ahead of feature count or short-term convenience.
+- Keep public foundation contracts small and stable; extend through injected ports, adapters, factories, and caller-defined types.
+- Keep game-specific rules, content, UI, assets, and schemas outside foundation modules.
+- Require clear ownership and teardown for runtime resources and state transitions.
+- Add abstractions only when backed by a concrete extension point; reject speculative configuration and unused generality.
+- Prefer changes that reduce coupling and allow components to be tested, replaced, or removed independently.
+- Preserve existing observable contracts unless a failing test establishes why the behavior must change.
+
 ## Structure
 
 - `src/App.tsx`: owns Phaser creation, browser lifecycle binding, and destruction.
