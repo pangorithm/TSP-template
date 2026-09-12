@@ -199,4 +199,58 @@ describe("App startup flow", () => {
     // Then: the orphaned game is destroyed immediately
     await waitFor(() => expect(mockDestroy).toHaveBeenCalledWith(true));
   });
+
+  it("skips creation when the module arrives after unmount", async () => {
+    // Given: the module is still loading.
+    const module = createDeferred<Awaited<ReturnType<GameModuleLoader>>>();
+    const loadGame = vi.fn(() => module.promise);
+    const createGame = vi.fn(createMockGame);
+    const { getByRole, unmount } = render(() => <App loadGame={loadGame} />);
+    fireEvent.click(getByRole("button", { name: "Start" }));
+    await waitFor(() => expect(loadGame).toHaveBeenCalledOnce());
+    // When: the owner disappears before the module resolves.
+    unmount();
+    module.resolve({ createGame });
+    await module.promise;
+    await new Promise<void>((resolve) => queueMicrotask(resolve));
+    // Then: no orphan initialization runs.
+    expect(createGame).not.toHaveBeenCalled();
+  });
+
+  it.each(["module", "creation"] as const)("reports the original %s error", async (stage) => {
+    // Given: startup fails at the selected boundary.
+    const cause = new Error("private diagnostic");
+    const onStartupError = vi.fn();
+    const loadGame: GameModuleLoader =
+      stage === "module"
+        ? () => Promise.reject(cause)
+        : () => Promise.resolve({ createGame: () => Promise.reject(cause) });
+    const { getByRole } = render(() => <App loadGame={loadGame} onStartupError={onStartupError} />);
+    // When: startup is requested.
+    fireEvent.click(getByRole("button", { name: "Start" }));
+    // Then: diagnostics retain their cause without exposing it in the UI.
+    await waitFor(() =>
+      expect(onStartupError).toHaveBeenCalledWith({ stage, action: "start", cause }),
+    );
+    expect(getByRole("alert").textContent).not.toContain(cause.message);
+  });
+
+  it("wakes a sleeping game only after scheduling its destruction", async () => {
+    // Given: a factory returns a stopped game.
+    const game = createMockGame();
+    Object.defineProperty(game.loop, "running", { value: false });
+    const wake = vi.spyOn(game.loop, "wake");
+    const { getByRole, queryByRole, unmount } = render(() => (
+      <App loadGame={async () => ({ createGame: () => game })} />
+    ));
+    fireEvent.click(getByRole("button", { name: "Start" }));
+    await waitFor(() => expect(queryByRole("status")).toBeNull());
+    // When: the owner is disposed.
+    unmount();
+    // Then: destruction gets a frame even though the game was sleeping.
+    expect(wake).toHaveBeenCalledOnce();
+    expect(mockDestroy.mock.invocationCallOrder[0]).toBeLessThan(
+      wake.mock.invocationCallOrder[0] ?? 0,
+    );
+  });
 });

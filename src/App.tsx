@@ -13,9 +13,16 @@ type GameModule = {
 
 export type GameModuleLoader = () => Promise<GameModule>;
 
+export type StartupError = {
+  readonly stage: "module" | "creation";
+  readonly action: MenuAction;
+  readonly cause: unknown;
+};
+
 export type AppProps = {
   readonly createContinuationGame?: GameFactory;
   readonly loadGame?: GameModuleLoader;
+  readonly onStartupError?: (error: StartupError) => void;
 };
 
 type StartupRequest =
@@ -33,6 +40,11 @@ type StartupState =
   | { readonly kind: "running" };
 
 const loadDefaultGame: GameModuleLoader = () => import("./game/config");
+
+function destroyGame(game: Phaser.Game): void {
+  game.destroy(true);
+  if (!game.loop.running) game.loop.wake();
+}
 
 export function App(props: AppProps) {
   const [startup, setStartup] = createSignal<StartupState>({ kind: "menu" });
@@ -54,11 +66,12 @@ export function App(props: AppProps) {
 
         const createGame = (create: GameFactory, request: StartupRequest): void => {
           void Promise.resolve()
-            .then(() => create(parent))
+            .then(() => (mounted ? create(parent) : undefined))
             .then(
               (createdGame) => {
+                if (createdGame === undefined) return;
                 if (!mounted) {
-                  createdGame.destroy(true);
+                  destroyGame(createdGame);
                   return;
                 }
 
@@ -74,8 +87,10 @@ export function App(props: AppProps) {
                 });
                 setStartup({ kind: "running" });
               },
-              () => {
-                if (mounted) setStartup({ kind: "error", recovery: { kind: "retry", request } });
+              (cause: unknown) => {
+                if (!mounted) return;
+                setStartup({ kind: "error", recovery: { kind: "retry", request } });
+                props.onStartupError?.({ stage: "creation", action: request.kind, cause });
               },
             );
         };
@@ -87,8 +102,10 @@ export function App(props: AppProps) {
               .then(() => request.loadGame())
               .then(
                 (module) => createGame(module.createGame, request),
-                () => {
-                  if (mounted) setStartup({ kind: "error", recovery: { kind: "reload" } });
+                (cause: unknown) => {
+                  if (!mounted) return;
+                  setStartup({ kind: "error", recovery: { kind: "reload" } });
+                  props.onStartupError?.({ stage: "module", action: "start", cause });
                 },
               );
             return;
@@ -107,7 +124,7 @@ export function App(props: AppProps) {
   onCleanup(() => {
     mounted = false;
     removeLifecycle?.();
-    game?.destroy(true);
+    if (game !== undefined) destroyGame(game);
   });
 
   function handleAction(selectedAction: MenuAction): void {
