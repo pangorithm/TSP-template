@@ -57,6 +57,16 @@ describe("continuous integration contracts", () => {
     expect(workflowSource).toContain("bun run tauri -- build --no-bundle");
   });
 
+  it("installs native Tauri libraries before the standalone Linux Rust tests", () => {
+    // Given: the standalone Rust job that links the Tauri library on Linux.
+    const rustJobSource = workflowSource.split("\n  rust-supply-chain:")[0]?.split("\n  rust:")[1];
+
+    // When: its setup steps are inspected.
+    // Then: the WebKit and application-indicator development libraries are installed.
+    expect(rustJobSource).toContain("libwebkit2gtk-4.1-dev");
+    expect(rustJobSource).toContain("libayatana-appindicator3-dev");
+  });
+
   it("initializes and compiles both hosted mobile targets", () => {
     expect(workflowSource).toContain("android:");
     expect(workflowSource).toContain("bun run tauri -- android init --ci");
