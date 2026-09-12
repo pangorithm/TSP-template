@@ -114,7 +114,8 @@ App teardown removes its lifecycle listeners, schedules Phaser destruction, and 
 
 ### Web & Quality Gate
 ```bash
-bun run check         # Run format, lint, typecheck, and unit-test gates
+bun run check         # Run dependency audit, format, lint, typecheck, and unit-test gates
+bun run audit         # Check the locked dependency graph for known vulnerabilities
 bun run format:check  # Check formatting via Biome
 bun run lint          # Run Biome lints
 bun run typecheck     # TypeScript check without emitting code
@@ -134,7 +135,7 @@ cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets -- -D warnings #
 ## CI Pipeline
 
 GitHub Actions workflow (`.github/workflows/ci.yml`) executes three parallel jobs:
-1. **Web Job**: Runs Bun 1.3.11 `format:check`, `lint`, `typecheck`, `test`, and `test:e2e` (Chromium via Playwright).
+1. **Web Job**: Runs Bun 1.3.11 `check` (dependency audit, format, lint, typecheck, and unit tests) and `test:e2e` (Chromium via Playwright).
 2. **Rust Job (Ubuntu)**: Installs Linux Tauri system dependencies and runs Rust 1.98.1 `cargo fmt --check`, `cargo check`, `cargo test`, and `cargo clippy`.
 3. **Windows Native Job**: Installs the pinned Bun/Rust toolchains, runs locked Cargo checks/tests, and builds the native release executable with `bun run tauri -- build --no-bundle`.
 
